@@ -24,9 +24,17 @@ class SentinelDataset(Dataset):
         for band in self.bands:
             band_path = os.path.join(self.img_dir, band)
             with rasterio.open(band_path) as src:
-                arr = src.read(1)
-                # Good practice: replace any NaN (NoData) pixels with 0
+                arr = src.read(1).astype(np.float32)
                 arr = np.nan_to_num(arr)
+                
+                # --- NEW: Normalization Step ---
+                # Min-Max scale each band independently to [0, 1]
+                b_min, b_max = arr.min(), arr.max()
+                if b_max > b_min:
+                    arr = (arr - b_min) / (b_max - b_min)
+                else:
+                    arr = np.zeros_like(arr)
+                
                 band_data.append(arr)
                 
         # Stack into shape: (Channels=7, Height=500, Width=500)
